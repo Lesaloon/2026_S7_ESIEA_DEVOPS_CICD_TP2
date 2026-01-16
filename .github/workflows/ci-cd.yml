@@ -204,28 +204,28 @@ jobs:
           ls -lh GuillianCarvillePython.zip
           echo "Archive created successfully"
 
-        # Uploader le zip vers le serveur FTP
-      - name: Upload to FTP server
-        run: |
-          # Cette étape attend les credentials FTP
-          # Les variables d'environnement seront définis une fois les credentials fournis:
-          # FTP_HOST, FTP_USER, FTP_PASSWORD
-
-          if [ -z "${{ secrets.FTP_HOST }}" ]; then
-            echo "⚠️  FTP credentials not yet configured"
-            echo "Archive ready at: GuillianCarvillePython.zip"
-            exit 0
-          fi
-
-          # Upload using curl to FTP
-          # First, try to create the directory (may fail if it exists, which is ok)
-          curl -k --user "${{ secrets.FTP_USER }}:${{ secrets.FTP_PASSWORD }}" \
-            -Q "-MKD RenduDevopsKube" \
-            "ftp://${{ secrets.FTP_HOST }}" || true
-
-          # Upload the file
-          curl -k --user "${{ secrets.FTP_USER }}:${{ secrets.FTP_PASSWORD }}" \
-            -T GuillianCarvillePython.zip \
-            "ftp://${{ secrets.FTP_HOST }}/RenduDevopsKube/"
-
-          echo "✓ Archive successfully uploaded to FTP"
+       # Uploader le zip vers le serveur FTP
+       - name: Upload to FTP server
+         run: |
+           # Cette étape attend les credentials FTP
+           # Les variables d'environnement seront définis une fois les credentials fournis:
+           # FTP_HOST, FTP_USER, FTP_PASSWORD
+           
+           if [ -z "${{ secrets.FTP_HOST }}" ]; then
+             echo "⚠️  FTP credentials not yet configured"
+             echo "Archive ready at: GuillianCarvillePython.zip"
+             exit 0
+           fi
+           
+           sudo apt-get update -qq
+           sudo apt-get install -y lftp
+           
+           lftp -u ${{ secrets.FTP_USER }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_HOST }} << EOF
+           set ssl:verify-certificate no
+           mkdir -p RenduDevopsKube 2>/dev/null || true
+           cd RenduDevopsKube
+           put GuillianCarvillePython.zip
+           quit
+           EOF
+           
+           echo "✓ Archive successfully uploaded to FTP"
