@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   flask-app:
@@ -8,12 +8,23 @@ services:
     container_name: flask-app
     ports:
       - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512MiB
     environment:
       - APP_DB_PATH=/data/app.db
     volumes:
       - ./data:/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

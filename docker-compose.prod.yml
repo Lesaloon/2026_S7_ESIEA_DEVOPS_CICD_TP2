@@ -15,10 +15,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 500M
-        reservations:
-          cpus: "0.25"
-          memory: 250M
+          memory: 512MiB
     healthcheck:
       test:
         [
