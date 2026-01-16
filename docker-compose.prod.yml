@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  flask-app:
+    image: ghcr.io/lesaloon/2026_s7_esiea_devops_cicd_tp2:latest
+    container_name: flask-app-prod
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_DB_PATH=/data/app.db
+    volumes:
+      - flask_app_data:/data
+    restart: always
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  flask_app_data:
+    driver: local
