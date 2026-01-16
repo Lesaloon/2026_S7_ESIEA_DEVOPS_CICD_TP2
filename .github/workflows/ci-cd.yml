@@ -164,11 +164,11 @@ jobs:
           image_name: ${{ github.repository }}
           github_token: ${{ secrets.GHCR_TOKEN }}
 
-       # Vérifier que l'image a bien été poussée vers GHCR
-       - name: Verify Docker image was pushed successfully
-         run: |
-           echo "✓ Docker image successfully built and pushed to GHCR"
-           echo "Image: ghcr.io/${{ github.repository }}:latest"
+        # Vérifier que l'image a bien été poussée vers GHCR
+      - name: Verify Docker image was pushed successfully
+        run: |
+          echo "✓ Docker image successfully built and pushed to GHCR"
+          echo "Image: ghcr.io/${{ github.repository }}:latest"
 
         # Installer Kompose pour convertir docker-compose en manifests Kubernetes
       - name: Install Kompose
