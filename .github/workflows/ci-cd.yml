@@ -132,8 +132,35 @@ jobs:
                   pip install -r requirements.txt
                   pip install pytest pytest-benchmark
 
-            # Exécution de benchmarks légers
-            # Objectif : détecter des régressions de performance
-            - name: Benchmarks légers
-              run: |
-                  pytest tests/performance --benchmark-only
+             # Exécution de benchmarks légers
+             # Objectif : détecter des régressions de performance
+             - name: Benchmarks légers
+               run: |
+                   pytest tests/performance --benchmark-only
+
+    # =====================================================
+    # 5. BUILD & PUSH DOCKER IMAGE TO GHCR
+    # =====================================================
+    docker-publish:
+        name: Build and publish Docker image to GHCR
+
+        # Ne démarre que si tous les tests passent
+        needs: performance-tests
+
+        # Seulement sur push à la branche main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+        runs-on: ubuntu-latest
+
+        steps:
+            # Récupération du code
+            - name: Checkout du code
+              uses: actions/checkout@v4
+
+            # Build et push l'image Docker vers GHCR
+            - name: Build and publish Docker image to ghcr.io
+              uses: macbre/push-to-ghcr@master
+              with:
+                image_name: ${{ github.repository }}
+                github_token: ${{ secrets.GITHUB_TOKEN }}
+
