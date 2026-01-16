@@ -1,0 +1,139 @@
+# Nom du workflow tel qu’il apparaîtra dans GitHub Actions
+name: CI/CD Pipeline
+
+# Déclencheurs du pipeline
+on:
+    # Le pipeline s’exécute à chaque Pull Request
+    pull_request:
+    # Le pipeline s’exécute aussi à chaque push sur la branche main
+    push:
+        branches: [main]
+
+jobs:
+    # =====================================================
+    # 1. VALIDATION DU CODE (Linting & qualité)
+    # =====================================================
+    lint:
+        # Nom lisible du job dans l’interface GitHub
+        name: Lint & Qualité du code
+
+        # Environnement d’exécution (machine virtuelle Linux)
+        runs-on: ubuntu-latest
+
+        steps:
+            # Étape 1 : récupération du code source
+            - name: Checkout du code
+              uses: actions/checkout@v4
+
+            # Étape 2 : installation de Python
+            - name: Installer Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+
+            # Étape 3 : installation de l’outil de linting
+            - name: Installer dépendances
+              run: |
+                  pip install ruff
+
+            # Étape 4 : analyse statique du code
+            # Objectif : échouer rapidement si le code est non conforme
+            - name: Linting (fail fast)
+              run: |
+                  ruff check .
+
+    # =====================================================
+    # 2. TESTS UNITAIRES (transformations de données)
+    # =====================================================
+    unit-tests:
+        name: Tests unitaires (transformations data)
+
+        # Le job ne démarre que si le linting a réussi
+        needs: lint
+
+        runs-on: ubuntu-latest
+
+        steps:
+            # Récupération du code
+            - uses: actions/checkout@v4
+
+            # Installation de Python
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+
+            # Installation des dépendances du projet + pytest
+            - name: Installer dépendances
+              run: |
+                  pip install -r requirements.txt
+                  pip install pytest
+
+            # Exécution des tests unitaires
+            # Ici : fonctions de transformation, nettoyage, calculs KPI
+            - name: Lancer tests unitaires
+              run: |
+                  pytest tests/unit
+
+    # =====================================================
+    # 3. TESTS D’INTÉGRATION (base de données + données)
+    # =====================================================
+    integration-tests:
+        name: Tests d’intégration (base + données)
+
+        # Dépend des tests unitaires
+        needs: unit-tests
+
+        runs-on: ubuntu-latest
+
+        steps:
+            # Récupération du code
+            - uses: actions/checkout@v4
+
+            # Installation de Python
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+
+            # Installation des dépendances nécessaires aux tests DB
+            - name: Installer dépendances
+              run: |
+                  pip install -r requirements.txt
+                  pip install pytest
+
+            # Exécution des tests d’intégration
+            # Objectif : tester les requêtes SQL, le schéma et les interactions réelles
+            - name: Lancer tests d’intégration
+              run: |
+                  pytest tests/integration
+
+    # =====================================================
+    # 4. TESTS DE PERFORMANCE (simples)
+    # =====================================================
+    performance-tests:
+        name: Validation des performances
+
+        # Ne démarre que si les tests d’intégration passent
+        needs: integration-tests
+
+        runs-on: ubuntu-latest
+
+        steps:
+            # Récupération du code
+            - uses: actions/checkout@v4
+
+            # Installation de Python
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+
+            # Installation des outils de benchmark
+            - name: Installer dépendances
+              run: |
+                  pip install -r requirements.txt
+                  pip install pytest pytest-benchmark
+
+            # Exécution de benchmarks légers
+            # Objectif : détecter des régressions de performance
+            - name: Benchmarks légers
+              run: |
+                  pytest tests/performance --benchmark-only
