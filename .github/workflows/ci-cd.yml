@@ -157,81 +157,80 @@ jobs:
       - name: Checkout du code
         uses: actions/checkout@v4
 
-       # Build et push l'image Docker vers GHCR
-       - name: Build and publish Docker image to ghcr.io
-         uses: macbre/push-to-ghcr@master
-         with:
-           image_name: ${{ github.repository }}
-           github_token: ${{ secrets.GHCR_TOKEN }}
+        # Build et push l'image Docker vers GHCR
+      - name: Build and publish Docker image to ghcr.io
+        uses: macbre/push-to-ghcr@master
+        with:
+          image_name: ${{ github.repository }}
+          github_token: ${{ secrets.GHCR_TOKEN }}
 
-       # Vérifier que l'image a bien été poussée vers GHCR
-       - name: Verify Docker image was pushed successfully
-         run: |
-           IMAGE_NAME="ghcr.io/${{ github.repository }}"
-           IMAGE_TAG="latest"
-           
-           # Utiliser gh CLI pour vérifier l'existence de l'image
-           gh api repos/${{ github.repository }}/packages \
-             --jq '.[] | select(.package_type == "container" and .name == "2026_s7_esiea_devops_cicd_tp2")' \
-             || (echo "Image verification failed"; exit 1)
-           
-           echo "✓ Docker image successfully pushed to GHCR"
-         env:
-           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Vérifier que l'image a bien été poussée vers GHCR
+      - name: Verify Docker image was pushed successfully
+        run: |
+          IMAGE_NAME="ghcr.io/${{ github.repository }}"
+          IMAGE_TAG="latest"
 
-       # Installer Kompose pour convertir docker-compose en manifests Kubernetes
-       - name: Install Kompose
-         run: |
-           curl -L https://github.com/kubernetes/kompose/releases/download/v1.32.0/kompose-linux-amd64 -o kompose
-           chmod +x kompose
-           sudo mv kompose /usr/local/bin/
+          # Utiliser gh CLI pour vérifier l'existence de l'image
+          gh api repos/${{ github.repository }}/packages \
+            --jq '.[] | select(.package_type == "container" and .name == "2026_s7_esiea_devops_cicd_tp2")' \
+            || (echo "Image verification failed"; exit 1)
 
-       # Générer les manifests Kubernetes à partir du docker-compose
-       - name: Generate Kubernetes manifests with Kompose
-         run: |
-           mkdir -p k8s-manifests
-           cd k8s-manifests
-           kompose -f ../docker-compose.prod.yml convert -o .
-           
-           echo "Generated manifests:"
-           ls -la
+          echo "✓ Docker image successfully pushed to GHCR"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-       # Créer le dossier GuillianCarvillePython avec les manifests
-       - name: Organize manifests and create submission folder
-         run: |
-           mkdir -p GuillianCarvillePython
-           cp k8s-manifests/* GuillianCarvillePython/
-           
-           echo "Contents of GuillianCarvillePython:"
-           ls -la GuillianCarvillePython/
+        # Installer Kompose pour convertir docker-compose en manifests Kubernetes
+      - name: Install Kompose
+        run: |
+          curl -L https://github.com/kubernetes/kompose/releases/download/v1.32.0/kompose-linux-amd64 -o kompose
+          chmod +x kompose
+          sudo mv kompose /usr/local/bin/
 
-       # Zipper le dossier GuillianCarvillePython
-       - name: Create deployment archive
-         run: |
-           zip -r GuillianCarvillePython.zip GuillianCarvillePython/
-           
-           ls -lh GuillianCarvillePython.zip
-           echo "Archive created successfully"
+      # Générer les manifests Kubernetes à partir du docker-compose
+      - name: Generate Kubernetes manifests with Kompose
+        run: |
+          mkdir -p k8s-manifests
+          cd k8s-manifests
+          kompose -f ../docker-compose.prod.yml convert -o .
 
-       # Uploader le zip vers le serveur FTP
-       - name: Upload to FTP server
-         run: |
-           # Cette étape attend les credentials FTP
-           # Les variables d'environnement seront définis une fois les credentials fournis:
-           # FTP_HOST, FTP_USER, FTP_PASSWORD
-           
-           if [ -z "${{ secrets.FTP_HOST }}" ]; then
-             echo "⚠️  FTP credentials not yet configured"
-             echo "Archive ready at: GuillianCarvillePython.zip"
-             exit 0
-           fi
-           
-           apt-get update && apt-get install -y lftp
-           
-           lftp -e "set ssl:verify-certificate no; \
-             open -u ${{ secrets.FTP_USER }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_HOST }}; \
-             cd RenduDevopsKube; \
-             put GuillianCarvillePython.zip; \
-             quit"
-           
-           echo "✓ Archive successfully uploaded to FTP"
+          echo "Generated manifests:"
+          ls -la
+
+      # Créer le dossier GuillianCarvillePython avec les manifests
+      - name: Organize manifests and create submission folder
+        run: |
+          mkdir -p GuillianCarvillePython
+          cp k8s-manifests/* GuillianCarvillePython/
+
+          echo "Contents of GuillianCarvillePython:"
+          ls -la GuillianCarvillePython/
+
+      # Zipper le dossier GuillianCarvillePython
+      - name: Create deployment archive
+        run: |
+          zip -r GuillianCarvillePython.zip GuillianCarvillePython/
+
+          ls -lh GuillianCarvillePython.zip
+          echo "Archive created successfully"
+
+      # Uploader le zip vers le serveur FTP
+      - name: Upload to FTP server
+        run: |
+          set -e
+          if [ -z "${{ secrets.FTP_HOST }}" ]; then
+            echo "⚠️  FTP credentials not yet configured"
+            echo "Archive ready at: GuillianCarvillePython.zip"
+            exit 0
+          fi
+
+          sudo apt-get update -qq
+          sudo apt-get install -y lftp
+          lftp -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_HOST }} << EOF
+          set ssl:verify-certificate no
+          mkdir -p RenduDevopsKube 2>/dev/null || true
+          cd RenduDevopsKube;
+          put GuillianCarvillePython.zip;
+          quit
+          EOF
+
+          echo "✓ Archive successfully uploaded to FTP"
