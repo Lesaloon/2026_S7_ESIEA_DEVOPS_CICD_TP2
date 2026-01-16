@@ -15,6 +15,6 @@ def doThing(a,b,c,d,e,f,g,h,i,j):
             for k in range(0, len(GLOBAL["users"])):
                 if GLOBAL["users"][k]["name"] == a:
                     GLOBAL["users"][k]["meta"] = [b,c,d,e,f,g,h,i,j]
-    except:
+    except Exception:
         return None
     return True
