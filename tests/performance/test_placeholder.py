@@ -1,5 +1,4 @@
 """Performance tests and benchmarks."""
-import pytest
 
 
 def test_placeholder_performance(benchmark):
